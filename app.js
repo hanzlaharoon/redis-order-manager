@@ -4,6 +4,9 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+var BinarySearchTree = require('binary-search-tree').BinarySearchTree;
+var ordersBst = new BinarySearchTree();
+
 var redis = require('redis');
 var client = redis.createClient();
 
@@ -27,12 +30,22 @@ app.use(cookieParser());
 
 client.on('connect', function () {
   console.log('connected');
+  client.flushdb(function (err, succeeded) {
+    console.log('flush succeeded'); // will be true if successfull
+  });
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+
+app.get('/orders', function (req, res, next) {
+  ordersBst.prettyPrint();
+  req.statusCode = 200;
+  res.setHeader('Content-Type', 'application/json');
+  res.json(ordersBst.data);
+});
 
 app.get('/order/:price', function (req, res, next) {
   let price = req.params.price;
@@ -56,6 +69,7 @@ app.post('/order', function (req, res, next) {
     if (!exists) {
       client.set(price, side, function (err, reply) {
         if (reply === 'OK') {
+          ordersBst.insert(price, side);
           req.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
           res.json(reply);
@@ -65,6 +79,7 @@ app.post('/order', function (req, res, next) {
       client.get(price, function (err, obj) {
         if (obj && obj != side) {
           client.del(price, function (err, obj) {
+            ordersBst.delete(price);
             req.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             // res.json(obj);
