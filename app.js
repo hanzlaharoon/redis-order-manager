@@ -28,6 +28,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Connection with Redis
 client.on('connect', function () {
   console.log('connected');
   client.flushdb(function (err, succeeded) {
@@ -40,12 +41,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-app.get('/orders', function (req, res, next) {
-  ordersBst.prettyPrint();
-  req.statusCode = 200;
-  res.setHeader('Content-Type', 'application/json');
-  res.json(ordersBst.data);
-});
+// Orders Router
 
 app.get('/order/:price', function (req, res, next) {
   let price = req.params.price;
@@ -72,7 +68,7 @@ app.post('/order', function (req, res, next) {
           ordersBst.insert(price, side);
           req.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
-          res.json(reply);
+          res.json(`${price} - ${side} order inserted: ${reply}`);
         }
       });
     } else {
@@ -82,7 +78,6 @@ app.post('/order', function (req, res, next) {
             ordersBst.delete(price);
             req.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
-            // res.json(obj);
             res.end(`${price} deleted successfully!`);
           });
         } else {
@@ -92,6 +87,14 @@ app.post('/order', function (req, res, next) {
       });
     }
   });
+});
+
+app.get('/orders', function (req, res, next) {
+  ordersBst.prettyPrint();
+  req.statusCode = 200;
+  res.setHeader('Content-Type', 'application/json');
+  // res.json(ordersBst.prettyPrint(false, ' '));
+  res.json();
 });
 
 // catch 404 and forward to error handler
